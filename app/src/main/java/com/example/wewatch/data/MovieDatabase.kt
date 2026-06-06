@@ -4,11 +4,11 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import android.content.Context
-import com.example.wewatch.models.Movie
+import com.example.wewatch.data.local.MovieEntity
 
 @Database(
-    entities = [Movie::class],
-    version = 2, // Обновили версию из-за новых полей (сюжет, актеры и т.д.)
+    entities = [MovieEntity::class],
+    version = 2,
     exportSchema = false
 )
 abstract class MovieDatabase : RoomDatabase() {

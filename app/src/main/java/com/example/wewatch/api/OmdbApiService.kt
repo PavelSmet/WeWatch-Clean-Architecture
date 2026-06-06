@@ -1,6 +1,6 @@
 package com.example.wewatch.api
 
-import com.example.wewatch.models.Movie
+import com.example.wewatch.domain.model.Movie
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -12,6 +12,7 @@ interface OmdbApi {
     @GET("/")
     suspend fun searchMovies(
         @Query("s") query: String,
+        @Query("y") year: String?,
         @Query("apikey") apiKey: String,
         @Query("type") type: String = "movie"
     ): OmdbSearchResponse
@@ -38,13 +39,13 @@ data class OmdbMovieResponse(
     val Genre: String?,
     val Plot: String?,
     val Director: String?,
-    val Writer: String?,    // Сценарист
+    val Writer: String?,
     val Actors: String?,
     val imdbRating: String?,
-    val Runtime: String?,   // Длительность
-    val Released: String?,  // Дата релиза
-    val Awards: String?,    // Награды
-    val Country: String?,   // Страна
+    val Runtime: String?,
+    val Released: String?,
+    val Awards: String?,
+    val Country: String?,
     val Poster: String,
     val Response: String?,
     val Error: String?
@@ -64,8 +65,8 @@ class OmdbApiService {
         .build()
         .create(OmdbApi::class.java)
 
-    suspend fun searchMovies(query: String): List<Movie> {
-        val response = api.searchMovies(query, apiKey)
+    suspend fun searchMovies(query: String, year: String? = null): List<Movie> {
+        val response = api.searchMovies(query, year, apiKey)
         if (response.Response == "True" && response.Search != null) {
             return response.Search.map { omdbMovie ->
                 Movie(

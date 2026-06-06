@@ -1,26 +1,26 @@
 package com.example.wewatch.data
 
 import androidx.room.*
-import com.example.wewatch.models.Movie
+import com.example.wewatch.data.local.MovieEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface MovieDao {
 
     @Query("SELECT * FROM movies")
-    fun getAllMovies(): Flow<List<Movie>>  // Реактивный поток всех фильмов
+    fun getAllMovies(): Flow<List<MovieEntity>>  // Реактивный поток всех фильмов
 
     @Query("SELECT * FROM movies")
-    suspend fun getMoviesSync(): List<Movie>  // Для проверок
+    suspend fun getMoviesSync(): List<MovieEntity>  // Для проверок
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertMovie(movie: Movie)
+    suspend fun insertMovie(movie: MovieEntity)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAllMovies(movies: List<Movie>)
+    suspend fun insertAllMovies(movies: List<MovieEntity>)
 
     @Delete
-    suspend fun deleteMovie(movie: Movie)
+    suspend fun deleteMovie(movie: MovieEntity)
 
     @Query("DELETE FROM movies WHERE imdbID IN (:movieIds)")
     suspend fun deleteMoviesByIds(movieIds: List<String>)
@@ -32,5 +32,5 @@ interface MovieDao {
     suspend fun clearAllSelections()  // Сброс всех чекбоксов
 
     @Query("SELECT * FROM movies WHERE isSelected = 1")
-    suspend fun getSelectedMovies(): List<Movie>  // Выбранные для удаления
+    suspend fun getSelectedMovies(): List<MovieEntity>  // Выбранные для удаления
 }
