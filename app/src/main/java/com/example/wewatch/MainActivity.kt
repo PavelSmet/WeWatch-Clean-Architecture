@@ -62,8 +62,6 @@ class MainActivity : AppCompatActivity() {
         adapter = MovieAdapter(
             movies = emptyList(),
             onItemClick = { movie ->
-                // Диагностика: если это сообщение появится, значит клик работает
-                Toast.makeText(this, "Открываю: ${movie.title}", Toast.LENGTH_SHORT).show()
                 viewModel.sendIntent(MainContract.Intent.MovieClicked(movie))
             },
             onSelectionChange = { movie, isSelected ->

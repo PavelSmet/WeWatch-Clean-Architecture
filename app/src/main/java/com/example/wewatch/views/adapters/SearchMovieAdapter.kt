@@ -2,7 +2,6 @@ package com.example.wewatch.views.adapters
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
-import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.example.wewatch.databinding.ItemSearchMovieBinding
@@ -51,7 +50,7 @@ class SearchMovieAdapter(
                     .into(ivPoster)
 
                 root.setOnClickListener {
-                    Toast.makeText(root.context, "Для выбора удерживайте", Toast.LENGTH_SHORT).show()
+                    // onMovieClick(movie) // Если захотим открывать детали по обычному клику
                 }
 
                 // Правый клик (долгое нажатие) - выбираем фильм
