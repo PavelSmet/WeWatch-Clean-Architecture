@@ -5,7 +5,7 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.example.wewatch.databinding.ItemMovieBinding
-import com.example.wewatch.models.Movie
+import com.example.wewatch.domain.model.Movie
 
 class MovieAdapter(
     private var movies: List<Movie>,
@@ -41,19 +41,23 @@ class MovieAdapter(
             binding.apply {
                 tvMovieTitle.text = movie.title
                 tvMovieYear.text = movie.year
+                
+                // Сбрасываем слушатель перед изменением состояния чекбокса
+                cbSelect.setOnCheckedChangeListener(null)
                 cbSelect.isChecked = movie.isSelected
 
-                // Загрузка постера через Glide
                 Glide.with(root.context)
                     .load(movie.posterUrl)
                     .placeholder(android.R.drawable.ic_menu_gallery)
                     .error(android.R.drawable.ic_menu_report_image)
                     .into(ivPoster)
 
+                // Клик по всей карточке для перехода в детали
                 root.setOnClickListener {
                     onItemClick(movie)
                 }
 
+                // Клик по чекбоксу для выбора
                 cbSelect.setOnCheckedChangeListener { _, isChecked ->
                     onSelectionChange(movie, isChecked)
                 }

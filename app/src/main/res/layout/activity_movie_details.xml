@@ -28,7 +28,15 @@
             android:orientation="vertical"
             android:padding="16dp">
 
+            <!-- Плеер трейлера (скрыт по умолчанию) -->
+            <com.pierfrancescosoffritti.androidyoutubeplayer.core.player.views.YouTubePlayerView
+                android:id="@+id/youtubePlayerView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:visibility="gone" />
+
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardPoster"
                 android:layout_width="200dp"
                 android:layout_height="300dp"
                 android:layout_gravity="center"
@@ -58,26 +66,9 @@
                 android:layout_marginTop="8dp"
                 android:gravity="center"
                 android:orientation="horizontal">
-
-                <TextView
-                    android:id="@+id/tvYear"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textSize="16sp" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginHorizontal="8dp"
-                    android:text="•" />
-
-                <TextView
-                    android:id="@+id/tvRating"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textStyle="bold"
-                    android:textColor="#FFB300"
-                    android:textSize="16sp" />
+                <TextView android:id="@+id/tvYear" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="16sp" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginHorizontal="8dp" android:text="•" />
+                <TextView android:id="@+id/tvRating" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textStyle="bold" android:textColor="#FFB300" android:textSize="16sp" />
             </LinearLayout>
 
             <TextView
@@ -114,29 +105,10 @@
                 android:layout_marginTop="8dp"
                 android:textSize="16sp"
                 android:lineSpacingExtra="4dp"/>
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
-                android:text="В ролях"
-                android:textSize="18sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/tvActors"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:textSize="16sp" />
-
-            <TextView
-                android:id="@+id/tvDirector"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:textSize="14sp"
-                android:textStyle="bold" />
+            
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="24dp" android:text="В ролях" android:textSize="18sp" android:textStyle="bold" />
+            <TextView android:id="@+id/tvActors" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:textSize="16sp" />
+            <TextView android:id="@+id/tvDirector" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:textSize="14sp" android:textStyle="bold" />
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>

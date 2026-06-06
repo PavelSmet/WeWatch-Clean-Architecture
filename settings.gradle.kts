@@ -19,6 +19,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "WeWatch"
+rootProject.name = "WeWatch MVI"
 include(":app")
- 

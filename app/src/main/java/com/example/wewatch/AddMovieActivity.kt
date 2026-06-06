@@ -3,43 +3,40 @@ package com.example.wewatch
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.bumptech.glide.Glide
 import com.example.wewatch.databinding.ActivityAddMovieBinding
-import com.example.wewatch.models.Movie
+import com.example.wewatch.domain.model.Movie
+import com.example.wewatch.viewmodels.AddMovieContract
+import com.example.wewatch.viewmodels.AddMovieViewModel
+import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 
+@AndroidEntryPoint
 class AddMovieActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityAddMovieBinding
-    private var selectedMovie: Movie? = null
+    private val viewModel: AddMovieViewModel by viewModels()
 
-    // Современный способ получения результата (Controller логика)
     private val searchLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == RESULT_OK) {
             val data = result.data
-            
-            // Безопасное получение Parcelable (Model)
-            selectedMovie = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val selectedMovie = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 data?.getParcelableExtra("selected_movie", Movie::class.java)
             } else {
                 @Suppress("DEPRECATION")
                 data?.getParcelableExtra("selected_movie")
             }
 
-            // Обновление View
-            selectedMovie?.let { movie ->
-                binding.etTitle.setText(movie.title)
-                binding.etYear.setText(movie.year)
-
-                Glide.with(this)
-                    .load(movie.posterUrl)
-                    .placeholder(android.R.drawable.ic_menu_gallery)
-                    .error(android.R.drawable.ic_menu_report_image)
-                    .into(binding.ivPoster)
-                
-                binding.ivPoster.visibility = android.view.View.VISIBLE
+            selectedMovie?.let { 
+                viewModel.sendIntent(AddMovieContract.Intent.MovieSelected(it)) 
             }
         }
     }
@@ -53,29 +50,68 @@ class AddMovieActivity : AppCompatActivity() {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
         setupClickListeners()
+        observeViewModel()
     }
 
     private fun setupClickListeners() {
-        // Запуск поиска через новый Launcher
         binding.btnSearch.setOnClickListener {
             val intent = Intent(this, SearchActivity::class.java)
             searchLauncher.launch(intent)
         }
 
         binding.btnAdd.setOnClickListener {
-            selectedMovie?.let { movie ->
+            viewModel.sendIntent(AddMovieContract.Intent.AddMovieClicked)
+        }
+    }
+
+    private fun observeViewModel() {
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                launch {
+                    viewModel.state.collect { state ->
+                        render(state)
+                    }
+                }
+                launch {
+                    viewModel.effect.collect { effect ->
+                        handleEffect(effect)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun render(state: AddMovieContract.State) {
+        state.movie?.let { movie ->
+            binding.etTitle.setText(movie.title)
+            binding.etYear.setText(movie.year)
+
+            Glide.with(this)
+                .load(movie.posterUrl)
+                .placeholder(android.R.drawable.ic_menu_gallery)
+                .error(android.R.drawable.ic_menu_report_image)
+                .into(binding.ivPoster)
+            
+            binding.ivPoster.visibility = View.VISIBLE
+        }
+        binding.btnAdd.isEnabled = state.isButtonEnabled
+    }
+
+    private fun handleEffect(effect: AddMovieContract.Effect) {
+        when (effect) {
+            is AddMovieContract.Effect.FinishWithResult -> {
                 val intent = Intent()
-                intent.putExtra("selected_movie", movie)
+                intent.putExtra("selected_movie", effect.movie)
                 setResult(RESULT_OK, intent)
                 finish()
-            } ?: run {
-                Toast.makeText(this, "Сначала выберите фильм", Toast.LENGTH_SHORT).show()
+            }
+            is AddMovieContract.Effect.ShowToast -> {
+                Toast.makeText(this, effect.message, Toast.LENGTH_SHORT).show()
             }
         }
     }
 
     override fun onSupportNavigateUp(): Boolean {
-        // Современный способ обработки кнопки "Назад"
         onBackPressedDispatcher.onBackPressed()
         return true
     }

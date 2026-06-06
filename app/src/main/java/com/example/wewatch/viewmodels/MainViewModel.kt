@@ -1,78 +1,99 @@
 package com.example.wewatch.viewmodels
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.wewatch.api.OmdbApiService
-import com.example.wewatch.data.MovieDatabase
-import com.example.wewatch.models.Movie
-import com.example.wewatch.repository.MovieRepository
+import com.example.wewatch.domain.model.Movie
+import com.example.wewatch.domain.usecase.*
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class MainViewModel(application: Application) : AndroidViewModel(application) {
+@HiltViewModel
+class MainViewModel @Inject constructor(
+    private val getMoviesUseCase: GetMoviesUseCase,
+    private val addMovieUseCase: AddMovieUseCase,
+    private val deleteMoviesUseCase: DeleteMoviesUseCase,
+    private val updateMovieSelectionUseCase: UpdateMovieSelectionUseCase,
+    private val clearSelectionsUseCase: ClearSelectionsUseCase,
+    private val getSelectedMoviesUseCase: GetSelectedMoviesUseCase,
+    private val getMovieDetailsUseCase: GetMovieDetailsUseCase
+) : ViewModel() {
 
-    private val repository: MovieRepository
-    private val apiService = OmdbApiService()
+    private val _state = MutableStateFlow(MainContract.State())
+    val state: StateFlow<MainContract.State> = _state.asStateFlow()
 
-    private val _movies = MutableStateFlow<List<Movie>>(emptyList())
-    val movies: StateFlow<List<Movie>> = _movies.asStateFlow()
-
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
-
-    private val _errorMessage = MutableStateFlow<String?>(null)
-    val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
+    private val _effect = Channel<MainContract.Effect>(Channel.BUFFERED)
+    val effect = _effect.receiveAsFlow()
 
     init {
-        val database = MovieDatabase.getInstance(application)
-        repository = MovieRepository(database.movieDao())
         loadMovies()
+    }
+
+    fun sendIntent(intent: MainContract.Intent) {
+        when (intent) {
+            is MainContract.Intent.LoadMovies -> loadMovies()
+            is MainContract.Intent.AddMovie -> addMovie(intent.movie)
+            is MainContract.Intent.UpdateMovieSelection -> updateMovieSelection(intent.movie, intent.isSelected)
+            is MainContract.Intent.DeleteSelectedMovies -> deleteSelectedMovies()
+            is MainContract.Intent.ClearSelection -> clearSelection()
+            is MainContract.Intent.MovieClicked -> {
+                viewModelScope.launch {
+                    _effect.send(MainContract.Effect.NavigateToDetails(intent.movie))
+                }
+            }
+        }
     }
 
     private fun loadMovies() {
         viewModelScope.launch {
-            _isLoading.value = true
-            repository.getAllMovies().collect { movieList ->
-                _movies.value = movieList
-                _isLoading.value = false
+            _state.update { it.copy(isLoading = true) }
+            getMoviesUseCase().collect { movieList ->
+                val selectedCount = movieList.count { it.isSelected }
+                _state.update { 
+                    it.copy(
+                        movies = movieList, 
+                        isLoading = false,
+                        isSelectionMode = selectedCount > 0,
+                        selectedCount = selectedCount
+                    ) 
+                }
             }
         }
     }
 
-    fun addMovie(movie: Movie) {
+    private fun addMovie(movie: Movie) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val fullMovie = apiService.getMovieDetails(movie.imdbID)
-                repository.addMovie(fullMovie)
+                val fullMovie = getMovieDetailsUseCase(movie.imdbID)
+                addMovieUseCase(fullMovie)
             } catch (e: Exception) {
-                repository.addMovie(movie)
+                addMovieUseCase(movie)
             }
         }
     }
 
-    fun deleteSelectedMovies() {
+    private fun deleteSelectedMovies() {
         viewModelScope.launch(Dispatchers.IO) {
-            val selectedMovies = repository.getSelectedMovies()
+            val selectedMovies = getSelectedMoviesUseCase()
             if (selectedMovies.isNotEmpty()) {
-                repository.deleteMovies(selectedMovies)
-                repository.clearAllSelections()
+                deleteMoviesUseCase(selectedMovies)
+                clearSelectionsUseCase()
             }
         }
     }
 
-    fun updateMovieSelection(movie: Movie, isSelected: Boolean) {
+    private fun updateMovieSelection(movie: Movie, isSelected: Boolean) {
         viewModelScope.launch(Dispatchers.IO) {
-            repository.updateMovieSelection(movie.imdbID, isSelected)
+            updateMovieSelectionUseCase(movie.imdbID, isSelected)
         }
     }
 
-    fun clearSelection() {
+    private fun clearSelection() {
         viewModelScope.launch(Dispatchers.IO) {
-            repository.clearAllSelections()
+            clearSelectionsUseCase()
         }
     }
 }

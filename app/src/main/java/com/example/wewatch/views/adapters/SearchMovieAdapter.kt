@@ -6,7 +6,7 @@ import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.example.wewatch.databinding.ItemSearchMovieBinding
-import com.example.wewatch.models.Movie
+import com.example.wewatch.domain.model.Movie
 
 class SearchMovieAdapter(
     private var movies: List<Movie>,

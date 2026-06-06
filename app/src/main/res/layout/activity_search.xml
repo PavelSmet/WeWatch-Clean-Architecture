@@ -18,15 +18,25 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:padding="16dp">
+        android:padding="16dp"
+        android:gravity="center_vertical">
 
         <EditText
             android:id="@+id/etSearch"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:hint="Введите название фильма"
+            android:hint="Название"
             android:inputType="text"/>
+
+        <EditText
+            android:id="@+id/etYear"
+            android:layout_width="80dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:hint="Год"
+            android:inputType="number"
+            android:maxLength="4"/>
 
         <Button
             android:id="@+id/btnSearch"
@@ -58,7 +68,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:text="Введите название для поиска"
+            android:text="Введите данные для поиска"
             android:textSize="16sp"/>
     </FrameLayout>
 </LinearLayout>

@@ -1,6 +1,6 @@
 package com.example.wewatch.viewmodels
 
-import com.example.wewatch.models.Movie
+import com.example.wewatch.domain.model.Movie
 
 class MainContract {
     // Состояние экрана
@@ -18,11 +18,13 @@ class MainContract {
         data class UpdateMovieSelection(val movie: Movie, val isSelected: Boolean) : Intent()
         object DeleteSelectedMovies : Intent()
         object ClearSelection : Intent()
+        data class MovieClicked(val movie: Movie) : Intent()
     }
 
     // Одноразовые эффекты (ViewModel -> UI: Toast, Navigation)
     sealed class Effect {
         data class ShowError(val message: String) : Effect()
         data class ShowToast(val message: String) : Effect()
+        data class NavigateToDetails(val movie: Movie) : Effect()
     }
 }

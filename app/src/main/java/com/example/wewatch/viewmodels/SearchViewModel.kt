@@ -2,44 +2,70 @@ package com.example.wewatch.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.wewatch.api.OmdbApiService
-import com.example.wewatch.models.Movie
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import com.example.wewatch.domain.usecase.SearchMoviesUseCase
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class SearchViewModel : ViewModel() {
+@HiltViewModel
+class SearchViewModel @Inject constructor(
+    private val searchMoviesUseCase: SearchMoviesUseCase
+) : ViewModel() {
 
-    private val apiService = OmdbApiService()
+    private val _state = MutableStateFlow(SearchContract.State())
+    val state: StateFlow<SearchContract.State> = _state.asStateFlow()
 
-    private val _searchResults = MutableStateFlow<List<Movie>>(emptyList())
-    val searchResults: StateFlow<List<Movie>> = _searchResults.asStateFlow()
+    private val _intent = MutableSharedFlow<SearchContract.Intent>()
 
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+    private val _effect = Channel<SearchContract.Effect>(Channel.BUFFERED)
+    val effect = _effect.receiveAsFlow()
 
-    private val _error = MutableStateFlow<String?>(null)
-    val error: StateFlow<String?> = _error.asStateFlow()
+    init {
+        handleIntents()
+    }
 
-    fun searchMovies(query: String) {
+    fun sendIntent(intent: SearchContract.Intent) {
+        viewModelScope.launch {
+            _intent.emit(intent)
+        }
+    }
+
+    private fun handleIntents() {
+        viewModelScope.launch {
+            _intent.collect { intent ->
+                when (intent) {
+                    is SearchContract.Intent.SearchMovies -> searchMovies(intent.query, intent.year)
+                }
+            }
+        }
+    }
+
+    private fun searchMovies(query: String, year: String?) {
         if (query.isBlank()) return
 
         viewModelScope.launch {
-            _isLoading.value = true
-            _error.value = null
+            _state.update { it.copy(isLoading = true, error = null) }
             
             try {
-                val results = apiService.searchMovies(query)
-                _searchResults.value = results
-                if (results.isEmpty()) {
-                    _error.value = "Ничего не найдено"
+                val results = searchMoviesUseCase(query, year)
+                _state.update { 
+                    it.copy(
+                        searchResults = results, 
+                        isLoading = false,
+                        error = if (results.isEmpty()) "Ничего не найдено" else null
+                    ) 
                 }
             } catch (e: Exception) {
-                _error.value = "Ошибка поиска: ${e.message}"
-                _searchResults.value = emptyList()
-            } finally {
-                _isLoading.value = false
+                _state.update { 
+                    it.copy(
+                        searchResults = emptyList(),
+                        isLoading = false,
+                        error = "Ошибка поиска: ${e.message}"
+                    ) 
+                }
+                _effect.send(SearchContract.Effect.ShowToast("Ошибка при поиске"))
             }
         }
     }

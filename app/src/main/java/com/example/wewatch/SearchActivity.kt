@@ -6,13 +6,18 @@ import android.view.View
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.wewatch.databinding.ActivitySearchBinding
+import com.example.wewatch.viewmodels.SearchContract
 import com.example.wewatch.viewmodels.SearchViewModel
 import com.example.wewatch.views.adapters.MovieAdapter
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
+@AndroidEntryPoint
 class SearchActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivitySearchBinding
@@ -55,45 +60,61 @@ class SearchActivity : AppCompatActivity() {
     private fun setupSearchButton() {
         binding.btnSearch.setOnClickListener {
             val query = binding.etSearch.text.toString()
+            val year = binding.etYear.text.toString().takeIf { it.isNotBlank() }
+            
             if (query.isNotEmpty()) {
-                viewModel.searchMovies(query)
+                viewModel.sendIntent(SearchContract.Intent.SearchMovies(query, year))
             } else {
-                Toast.makeText(this, "Введите текст", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Введите название фильма", Toast.LENGTH_SHORT).show()
             }
         }
     }
 
     private fun observeViewModel() {
         lifecycleScope.launch {
-            // Результаты поиска
-            launch {
-                viewModel.searchResults.collect { movies ->
-                    adapter.updateMovies(movies)
-                    binding.rvSearchResults.visibility = if (movies.isNotEmpty()) View.VISIBLE else View.GONE
-                    binding.tvEmpty.visibility = if (movies.isEmpty()) View.VISIBLE else View.GONE
-                    if (movies.isEmpty()) {
-                        binding.tvEmpty.text = "Ничего не найдено"
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                launch {
+                    viewModel.state.collect { state ->
+                        render(state)
+                    }
+                }
+                launch {
+                    viewModel.effect.collect { effect ->
+                        handleEffect(effect)
                     }
                 }
             }
+        }
+    }
 
-            // Загрузка
-            launch {
-                viewModel.isLoading.collect { isLoading ->
-                    binding.progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
-                    if (isLoading) binding.tvEmpty.visibility = View.GONE
-                }
+    private fun render(state: SearchContract.State) {
+        binding.progressBar.visibility = if (state.isLoading) View.VISIBLE else View.GONE
+        
+        adapter.updateMovies(state.searchResults)
+        
+        if (state.isLoading) {
+            binding.tvEmpty.visibility = View.GONE
+            binding.rvSearchResults.visibility = View.GONE
+        } else {
+            if (state.error != null) {
+                binding.tvEmpty.text = state.error
+                binding.tvEmpty.visibility = View.VISIBLE
+                binding.rvSearchResults.visibility = View.GONE
+            } else if (state.searchResults.isEmpty()) {
+                binding.tvEmpty.text = "Введите данные для поиска"
+                binding.tvEmpty.visibility = View.VISIBLE
+                binding.rvSearchResults.visibility = View.GONE
+            } else {
+                binding.tvEmpty.visibility = View.GONE
+                binding.rvSearchResults.visibility = View.VISIBLE
             }
+        }
+    }
 
-            // Ошибки
-            launch {
-                viewModel.error.collect { error ->
-                    error?.let {
-                        Toast.makeText(this@SearchActivity, it, Toast.LENGTH_SHORT).show()
-                        binding.tvEmpty.text = it
-                        binding.tvEmpty.visibility = View.VISIBLE
-                    }
-                }
+    private fun handleEffect(effect: SearchContract.Effect) {
+        when (effect) {
+            is SearchContract.Effect.ShowToast -> {
+                Toast.makeText(this, effect.message, Toast.LENGTH_SHORT).show()
             }
         }
     }
